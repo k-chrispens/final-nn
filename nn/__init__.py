@@ -1,5 +1,5 @@
 """
-BMI203: Biocomputing Algorithms - Winter 2023
+BMI203: Biocomputing Algorithms - Winter 2024
 Final project: neural networks
 """
 

@@ -3,6 +3,7 @@ import numpy as np
 from typing import List, Dict, Tuple, Union
 from numpy.typing import ArrayLike
 
+
 class NeuralNetwork:
     """
     This is a class that generates a fully-connected neural network.
@@ -35,7 +36,7 @@ class NeuralNetwork:
         seed: int,
         batch_size: int,
         epochs: int,
-        loss_function: str
+        loss_function: str,
     ):
 
         # Save architecture
@@ -73,19 +74,17 @@ class NeuralNetwork:
         # Initialize each layer's weight matrices (W) and bias matrices (b)
         for idx, layer in enumerate(self.arch):
             layer_idx = idx + 1
-            input_dim = layer['input_dim']
-            output_dim = layer['output_dim']
-            param_dict['W' + str(layer_idx)] = np.random.randn(output_dim, input_dim) * 0.1
-            param_dict['b' + str(layer_idx)] = np.random.randn(output_dim, 1) * 0.1
+            input_dim = layer["input_dim"]
+            output_dim = layer["output_dim"]
+            param_dict["W" + str(layer_idx)] = (
+                np.random.randn(output_dim, input_dim) * 0.1
+            )
+            param_dict["b" + str(layer_idx)] = np.random.randn(output_dim, 1) * 0.1
 
         return param_dict
 
     def _single_forward(
-        self,
-        W_curr: ArrayLike,
-        b_curr: ArrayLike,
-        A_prev: ArrayLike,
-        activation: str
+        self, W_curr: ArrayLike, b_curr: ArrayLike, A_prev: ArrayLike, activation: str
     ) -> Tuple[ArrayLike, ArrayLike]:
         """
         This method is used for a single forward pass on a single layer.
@@ -131,7 +130,7 @@ class NeuralNetwork:
         Z_curr: ArrayLike,
         A_prev: ArrayLike,
         dA_curr: ArrayLike,
-        activation_curr: str
+        activation_curr: str,
     ) -> Tuple[ArrayLike, ArrayLike, ArrayLike]:
         """
         This method is used for a single backprop pass on a single layer.
@@ -191,11 +190,7 @@ class NeuralNetwork:
         pass
 
     def fit(
-        self,
-        X_train: ArrayLike,
-        y_train: ArrayLike,
-        X_val: ArrayLike,
-        y_val: ArrayLike
+        self, X_train: ArrayLike, y_train: ArrayLike, X_val: ArrayLike, y_val: ArrayLike
     ) -> Tuple[List[float], List[float]]:
         """
         This function trains the neural network by backpropagation for the number of epochs defined at
@@ -245,7 +240,7 @@ class NeuralNetwork:
             nl_transform: ArrayLike
                 Activation function output.
         """
-        pass
+        return 1 / (1 + np.exp(Z))  # sigmoid function
 
     def _sigmoid_backprop(self, dA: ArrayLike, Z: ArrayLike):
         """
@@ -261,7 +256,8 @@ class NeuralNetwork:
             dZ: ArrayLike
                 Partial derivative of current layer Z matrix.
         """
-        pass
+        activations = self._sigmoid(Z)
+        return dA * activations * (1 - activations)
 
     def _relu(self, Z: ArrayLike) -> ArrayLike:
         """
@@ -275,7 +271,7 @@ class NeuralNetwork:
             nl_transform: ArrayLike
                 Activation function output.
         """
-        pass
+        return Z * (Z > 0)  # ReLU function
 
     def _relu_backprop(self, dA: ArrayLike, Z: ArrayLike) -> ArrayLike:
         """
@@ -291,7 +287,7 @@ class NeuralNetwork:
             dZ: ArrayLike
                 Partial derivative of current layer Z matrix.
         """
-        pass
+        return dA * (Z > 0)
 
     def _binary_cross_entropy(self, y: ArrayLike, y_hat: ArrayLike) -> float:
         """
@@ -307,9 +303,16 @@ class NeuralNetwork:
             loss: float
                 Average loss over mini-batch.
         """
-        pass
+        epsilon = 1e-15  # to prevent log(0)
+        H = -np.mean(
+            y * np.log(y_hat + epsilon)
+            + (1 - y) * np.log(1 - y_hat + epsilon)
+        )
+        return H
 
-    def _binary_cross_entropy_backprop(self, y: ArrayLike, y_hat: ArrayLike) -> ArrayLike:
+    def _binary_cross_entropy_backprop(
+        self, y: ArrayLike, y_hat: ArrayLike
+    ) -> ArrayLike:
         """
         Binary cross entropy loss function derivative for backprop.
 
@@ -323,7 +326,7 @@ class NeuralNetwork:
             dA: ArrayLike
                 partial derivative of loss with respect to A matrix.
         """
-        pass
+        return - (y / y_hat - (1 - y) / (1 - y_hat))
 
     def _mean_squared_error(self, y: ArrayLike, y_hat: ArrayLike) -> float:
         """
@@ -339,7 +342,7 @@ class NeuralNetwork:
             loss: float
                 Average loss of mini-batch.
         """
-        pass
+        return np.mean((y_hat - y) ** 2)
 
     def _mean_squared_error_backprop(self, y: ArrayLike, y_hat: ArrayLike) -> ArrayLike:
         """
@@ -355,4 +358,4 @@ class NeuralNetwork:
             dA: ArrayLike
                 partial derivative of loss with respect to A matrix.
         """
-        pass
+        return 2 * (y_hat - y) / y.shape[0]
