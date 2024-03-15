@@ -38,8 +38,8 @@ def sample_seqs(seqs: List[str], labels: List[bool]) -> Tuple[List[str], List[bo
     sampled_minority_indices = np.random.choice(
         len(minority_seqs), size=num_samples_needed, replace=True
     )
-    sampled_minority_seqs = [minority_seqs[i] for i in sampled_minority_indices]
-    sampled_minority_labels = [minority_labels[i] for i in sampled_minority_indices]
+    sampled_minority_seqs = [minority_seqs[i] for i in sampled_minority_indices] + minority_seqs
+    sampled_minority_labels = [minority_labels[i] for i in sampled_minority_indices] + minority_labels
 
     # Combine the sampled minority class with the majority class
     sampled_seqs = majority_seqs + sampled_minority_seqs

@@ -11,7 +11,7 @@ class NeuralNetwork:
     Parameters:
         nn_arch: List[Dict[str, float]]
             A list of dictionaries describing the layers of the neural network.
-            e.g. [{'input_dim': 64, 'output_dim': 32, 'activation': 'relu'}, {'input_dim': 32, 'output_dim': 8, 'activation:': 'sigmoid'}]
+            e.g. [{'input_dim': 64, 'output_dim': 32, 'activation': 'relu'}, {'input_dim': 32, 'output_dim': 8, 'activation': 'sigmoid'}]
             will generate a two-layer deep network with an input dimension of 64, a 32 dimension hidden layer, and an 8 dimensional output.
         lr: float
             Learning rate (alpha).
@@ -105,14 +105,16 @@ class NeuralNetwork:
             Z_curr: ArrayLike
                 Current layer linear transformed matrix.
         """
-        Z_curr = np.dot(W_curr, A_prev) + b_curr
+        Z_curr = (
+            np.dot(W_curr, A_prev.T) + b_curr
+        )  # Given A_prev is (batch_size, output_dim), W_curr is (output_dim, input_dim), b_curr is (output_dim, 1), Z_curr should be (output_dim, batch_size)
         if activation == "relu":
             A_curr = self._relu(Z_curr)
         elif activation == "sigmoid":
             A_curr = self._sigmoid(Z_curr)
         else:
             raise ValueError("Unsupported activation function")
-        return A_curr, Z_curr
+        return A_curr.T, Z_curr  # Transpose A_curr to original shape (batch_size, output_dim)
 
     def forward(self, X: ArrayLike) -> Tuple[ArrayLike, Dict[str, ArrayLike]]:
         """
@@ -120,7 +122,9 @@ class NeuralNetwork:
 
         Args:
             X: ArrayLike
-                Input matrix with shape [batch_size, features].
+                Input matrix with shape [batch_size, features]. 
+                # NOTE: This means that transposes are needed when multiplying with W, 
+                which is in the shape of [output_dim, input_dim] and features are the input dim.
 
         Returns:
             output: ArrayLike
@@ -128,9 +132,7 @@ class NeuralNetwork:
             cache: Dict[str, ArrayLike]:
                 Dictionary storing Z and A matrices from `_single_forward` for use in backprop.
         """
-        A_curr = (
-            X.T
-        )  # Transpose input to match weight matrix dimensions # FIXME: check if needed?
+        A_curr = X
         cache = {"A0": A_curr}
 
         for idx, layer in enumerate(self.arch, 1):
@@ -144,9 +146,9 @@ class NeuralNetwork:
             cache["Z" + str(idx)] = Z_curr
 
         return (
-            A_curr.T,
+            A_curr,  # Transpose to original shape is handled in _single_forward
             cache,
-        )  # Transpose output to original shape # FIXME: check if needed?
+        )
 
     def _single_backprop(
         self,
@@ -183,16 +185,16 @@ class NeuralNetwork:
                 Partial derivative of loss function with respect to current layer bias matrix.
         """
         if activation_curr == "relu":
-            dZ_curr = self._relu_backprop(dA_curr, Z_curr)
+            dZ_curr = self._relu_backprop(dA_curr.T, Z_curr) # Transpose A to match Z shape (output_dim, batch_size)
         elif activation_curr == "sigmoid":
-            dZ_curr = self._sigmoid_backprop(dA_curr, Z_curr)
+            dZ_curr = self._sigmoid_backprop(dA_curr.T, Z_curr) # Transpose A to match Z shape (output_dim, batch_size)
         else:
             raise ValueError("Unsupported activation function")
 
-        m = A_prev.shape[1]  # batch size
-        dW_curr = np.dot(dZ_curr, A_prev.T) / m
+        m = A_prev.shape[0]  # batch size
+        dW_curr = np.dot(dZ_curr, A_prev) / m
         db_curr = np.sum(dZ_curr, axis=1, keepdims=True) / m
-        dA_prev = np.dot(W_curr.T, dZ_curr)
+        dA_prev = np.dot(W_curr.T, dZ_curr).T # Transpose to match other activation shapes, (batch_size, prev_layer_dim) where prev_layer_dim is the output_dim of the previous layer
 
         return dA_prev, dW_curr, db_curr
 
@@ -312,12 +314,14 @@ class NeuralNetwork:
 
         Args:
             X: ArrayLike
-                Input data for prediction.
+                Input data for prediction. Shape is (batch_size, features)
 
         Returns:
             y_hat: ArrayLike
                 Prediction from the model.
         """
+        if len(X.shape) == 1: # If only one sample, reshape to (1, features)
+            X = X.reshape(1, -1)
         y_hat, _ = self.forward(X)
         return y_hat
 

@@ -13,14 +13,14 @@ def test_single_forward():
         epochs=1,
         loss_function="mse",
     )
-    X = np.array([[1, 2]]).T  # need to transpose to match the shape of W
+    X = np.array([[1, 2]])  # input is row major for batches, columns are feature inputs
     b_curr = nn._param_dict["b1"]
     W_curr = nn._param_dict["W1"]
     activation = nn.arch[0]["activation"]
     activations, linear_transform = nn._single_forward(W_curr, b_curr, X, activation)
-    assert activations.shape == (2, 1)
-    assert linear_transform.shape == (2, 1)
-    assert np.all(nn._relu(linear_transform) == activations)
+    assert activations.shape == (1, 2) # 1 row for the batch, 2 columns for the output
+    assert linear_transform.shape == (2, 1) # 2 rows for the output, 1 column for the batch (internal weights are stored with output as axis 0)
+    assert np.all(nn._relu(linear_transform).T == activations)
 
 
 def test_forward():
@@ -38,7 +38,7 @@ def test_forward():
     X = np.array([[1, 2]])
     activations, cache = nn.forward(X)
     assert activations.shape == (1, 1)
-    assert cache["A1"].shape == (3, 1)
+    assert cache["A1"].shape == (1, 3)
     assert cache["Z1"].shape == (3, 1)
     assert cache["A2"].shape == (1, 1)
     assert cache["Z2"].shape == (1, 1)
@@ -46,25 +46,28 @@ def test_forward():
 
 def test_single_backprop():
     nn = NeuralNetwork(
-        nn_arch=[{"input_dim": 2, "output_dim": 2, "activation": "relu"}],
+        nn_arch=[{"input_dim": 2, "output_dim": 2, "activation": "relu"}, {"input_dim": 2, "output_dim": 1, "activation": "relu"}],
         lr=0.01,
         seed=42,
         batch_size=1,
         epochs=1,
         loss_function="mse",
     )
-    X = np.array([[1, 2]]).T  # need to transpose to match the shape of W
-    Y = np.array([[1, 0]]).T
-    b_curr = nn._param_dict["b1"]
-    W_curr = nn._param_dict["W1"]
-    activation = nn.arch[0]["activation"]
-    activations, linear_transform = nn._single_forward(W_curr, b_curr, X, activation)
+    X = np.array([[1, 2]])
+    Y = np.array([[1]])
+    b_curr = nn._param_dict["b2"]
+    W_curr = nn._param_dict["W2"]
+    activation = nn.arch[1]["activation"]
+    activations, cache = nn.forward(X)
+    dA_curr = nn._mean_squared_error_backprop(Y, activations) # error of the output layer
+    Z_curr = cache["Z2"]
+    A_prev = cache["A1"]
     dA_prev, dW_curr, db_curr = nn._single_backprop(
-        W_curr, b_curr, Y, activations, linear_transform, activation
+        W_curr=W_curr, b_curr=b_curr, Z_curr=Z_curr, A_prev=A_prev, dA_curr=dA_curr, activation_curr=activation
     )
-    assert dA_prev.shape == (2, 1)
-    assert dW_curr.shape == (2, 2)
-    assert db_curr.shape == (2, 1)
+    assert dA_prev.shape == (1, 2)
+    assert dW_curr.shape == (1, 2)
+    assert db_curr.shape == (1, 1)
 
 
 def test_predict():
