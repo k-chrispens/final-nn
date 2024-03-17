@@ -25,11 +25,11 @@ def sample_seqs(seqs: List[str], labels: List[bool]) -> Tuple[List[str], List[bo
     neg_seqs = [seq for seq, label in zip(seqs, labels) if not label]
 
     if len(pos_seqs) > len(neg_seqs):
-        minority_seqs, minority_labels = neg_seqs, [False] * len(neg_seqs)
-        majority_seqs, majority_labels = pos_seqs, [True] * len(pos_seqs)
+        minority_seqs, minority_labels = neg_seqs, [0] * len(neg_seqs)
+        majority_seqs, majority_labels = pos_seqs, [1] * len(pos_seqs)
     else:
-        minority_seqs, minority_labels = pos_seqs, [True] * len(pos_seqs)
-        majority_seqs, majority_labels = neg_seqs, [False] * len(neg_seqs)
+        minority_seqs, minority_labels = pos_seqs, [1] * len(pos_seqs)
+        majority_seqs, majority_labels = neg_seqs, [0] * len(neg_seqs)
 
     # Number of samples needed to balance the classes
     num_samples_needed = len(majority_seqs) - len(minority_seqs)
@@ -38,8 +38,12 @@ def sample_seqs(seqs: List[str], labels: List[bool]) -> Tuple[List[str], List[bo
     sampled_minority_indices = np.random.choice(
         len(minority_seqs), size=num_samples_needed, replace=True
     )
-    sampled_minority_seqs = [minority_seqs[i] for i in sampled_minority_indices] + minority_seqs
-    sampled_minority_labels = [minority_labels[i] for i in sampled_minority_indices] + minority_labels
+    sampled_minority_seqs = [
+        minority_seqs[i] for i in sampled_minority_indices
+    ] + minority_seqs
+    sampled_minority_labels = [
+        minority_labels[i] for i in sampled_minority_indices
+    ] + minority_labels
 
     # Combine the sampled minority class with the majority class
     sampled_seqs = majority_seqs + sampled_minority_seqs
@@ -72,6 +76,9 @@ def one_hot_encode_seqs(seq_arr: List[str]) -> ArrayLike:
                 G -> [0, 0, 0, 1]
             Then, AGA -> [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0].
     """
+    if not all([len(seq) == len(seq_arr[0]) for seq in seq_arr]):
+        raise ValueError("All sequences in list must be of the same length")
+
     encodings = np.zeros(
         (
             len(seq_arr),

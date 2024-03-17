@@ -337,6 +337,7 @@ class NeuralNetwork:
             nl_transform: ArrayLike
                 Activation function output.
         """
+        # Z = np.clip(Z, -5000, 5000)  # prevent overflow
         return 1 / (1 + np.exp(Z))  # sigmoid function
 
     def _sigmoid_backprop(self, dA: ArrayLike, Z: ArrayLike):
@@ -422,6 +423,8 @@ class NeuralNetwork:
             dA: ArrayLike
                 partial derivative of loss with respect to A matrix.
         """
+        epsilon = 1e-15  # to prevent division by 0
+        y_hat = np.clip(y_hat, epsilon, 1 - epsilon)
         return (y_hat - y) / (y_hat * (1 - y_hat))
 
     def _mean_squared_error(self, y: ArrayLike, y_hat: ArrayLike) -> float:
