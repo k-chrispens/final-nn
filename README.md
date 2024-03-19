@@ -1,5 +1,7 @@
 # Final project: neural network
 
+![](https://github.com/k-chrispens/final-nn/workflows/Project%20Tests/badge.svg)
+
 ## Overview
 
 In this assignment, you will implement a neural network class from (almost) scratch. You will then apply your class to create both:
